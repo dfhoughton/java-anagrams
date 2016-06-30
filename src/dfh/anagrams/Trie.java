@@ -16,7 +16,7 @@ public class Trie {
 
 	public void addWord(String word) {
 		word = normalizer.normalize(word);
-		if (word.length() > 0 ) {
+		if (word.length() > 0) {
 			int[] translation = cm.translate(word);
 			root.add(translation, 0);
 		}
@@ -62,7 +62,17 @@ public class Trie {
 		((ArrayList<?>) list).trimToSize();
 	}
 
+	/**
+	 * @return number of nodes in trie
+	 */
 	public int size() {
 		return root.size();
+	}
+
+	/**
+	 * @return number of terminal nodes in trie
+	 */
+	public int terminalNodes() {
+		return root.terminalNodes();
 	}
 }

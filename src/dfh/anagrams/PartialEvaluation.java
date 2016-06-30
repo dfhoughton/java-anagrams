@@ -56,6 +56,9 @@ public class PartialEvaluation {
 		return w;
 	}
 
+	/**
+	 * Does a little garbage collection.
+	 */
 	public void freeze() {
 		if (!frozen) {
 			frozen = true;

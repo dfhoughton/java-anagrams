@@ -3,9 +3,11 @@ package dfh.anagrams;
 import java.util.List;
 
 public class TrieNode {
-	private TrieNode[] children = new TrieNode[0];
+	private static TrieNode[] EMPTY_CHILD_LIST = new TrieNode[0];
+	private static int[] EMPTY_JUMP_LIST = new int[0];
+	private TrieNode[] children = EMPTY_CHILD_LIST;
 	private int[] jumpList;
-	private boolean terminal = false, frozen = false;
+	private boolean terminal = false;
 
 	/**
 	 * Add a suffix of the given word to the sub-trie rooted at this node,
@@ -22,7 +24,9 @@ public class TrieNode {
 			int c = translation[i];
 			if (c >= children.length) {
 				TrieNode[] newChildren = new TrieNode[c + 1];
-				System.arraycopy(children, 0, newChildren, 0, children.length);
+				if (children.length > 0) {
+					System.arraycopy(children, 0, newChildren, 0, children.length);
+				}
 				children = newChildren;
 			}
 			TrieNode n = children[c];
@@ -42,37 +46,28 @@ public class TrieNode {
 		return s;
 	}
 
-	public boolean terminal() {
-		return terminal;
-	}
-
-	public TrieNode subtree(int i) {
-		if (i >= children.length) {
-			return null;
-		} else {
-			return children[i];
-		}
-	}
-
 	/**
 	 * @return the list of non-null child indices
 	 */
 	public int[] jumpList() {
-		if (!frozen) {
-			int size = 0;
-			for (TrieNode n : children) {
-				if (n != null) {
-					size++;
+		if (jumpList == null) {
+			if (children.length == 0) {
+				jumpList = EMPTY_JUMP_LIST;
+			} else {
+				int size = 0;
+				for (TrieNode n : children) {
+					if (n != null) {
+						size++;
+					}
+				}
+				jumpList = new int[size];
+				int i = 0;
+				for (int j = 0; j < children.length; j++) {
+					if (children[j] != null) {
+						jumpList[i++] = j;
+					}
 				}
 			}
-			jumpList = new int[size];
-			int i = 0;
-			for (int j = 0; j < children.length; j++) {
-				if (children[j] != null) {
-					jumpList[i++] = j;
-				}
-			}
-			frozen = true;
 		}
 		return jumpList;
 	}
@@ -87,5 +82,16 @@ public class TrieNode {
 				children[i].allSingleWordsFromCharacterCount(shorter, list);
 			}
 		}
+	}
+
+	/**
+	 * @return the number of terminal nodes dominated by this node
+	 */
+	public int terminalNodes() {
+		int n = terminal ? 1 : 0;
+		for (int i : jumpList()) {
+			n += children[i].terminalNodes();
+		}
+		return n;
 	}
 }

@@ -13,6 +13,7 @@ import java.util.List;
 
 import dfh.cli.Cli;
 import dfh.cli.coercions.FileCoercion;
+import dfh.cli.rules.Range;
 
 public class Anagramizer {
 	static PrintStream out = System.out;
@@ -27,11 +28,14 @@ public class Anagramizer {
 				{ { "dictionary", 'd', FileCoercion.C }, { "word list; one word per line" }, { Cli.Res.REQUIRED } }, //
 				{ { "out", 'o', FileCoercion.C }, { "file for output" } }, //
 				{ { "verbose", 'v' }, { "provide progress information" } }, //
-				{ { "time", 't' }, { "if verbose, time operations" } },//
+				{ { "time", 't' }, { "if verbose, time operations" } }, //
+				{ { "threads", Integer.class, Runtime.getRuntime().availableProcessors() + 1 },
+						{ "maximum number of threads" }, { Range.positive() } },//
 		};
 		Cli cli = new Cli(spec);
 		cli.parse(args);
 		File dictionary = (File) cli.object("dictionary"), outFile = (File) cli.object("out");
+		int threads = cli.integer("threads");
 		if (!(dictionary.exists() && dictionary.isFile())) {
 			cli.die("The provided dictionary, " + dictionary + ", does not appear to be a word list.");
 		}
@@ -75,14 +79,15 @@ public class Anagramizer {
 			if (timeOperations) {
 				reportTiming(time[0]);
 			}
-			int s = trie.size();
-			System.out.printf("trie has %,d %s\n", s, inflect("node", s));
+			int s = trie.size(), s2 = trie.terminalNodes();
+			System.out.printf("trie has %,d %s, %,d %s\n", s, inflect("node", s), s2, inflect("terminal node", s2));
 			System.out.printf("collecting anagrams of '%s'...\n", phrase);
 			if (timeOperations) {
 				time[0] = System.currentTimeMillis();
 			}
 		}
-		TrieWalker walker = new TrieWalker(trie);
+		trie.freeze();
+		TrieWalker walker = new TrieWalker(trie, threads);
 		if (verbose) {
 			walker.beforeWalk = () -> {
 				System.out.println("collecting all necessary partial evaluations...");
