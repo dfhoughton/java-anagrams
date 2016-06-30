@@ -1,7 +1,7 @@
 package dfh.anagrams;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -45,12 +45,14 @@ public class Trie {
 	public void allSingleWordsFromCharacterCount(CharCount cc, List<PartialEvaluation> list) {
 		root.allSingleWordsFromCharacterCount(new PartialEvaluation(cc), list);
 		// make sure every character count was decremented somewhere
-		Set<Integer> cs = cc.charSet();
-		for (PartialEvaluation pe : list) {
-			Collection<Integer> decremented = cc.decremented(pe.cc);
-			cs.removeAll(decremented);
-			if (cs.isEmpty()) {
-				break;
+		Set<Integer> cs = new HashSet<>(cc.charSet().length);
+		for (int i: cc.charSet())
+			cs.add(i);
+		OUTER: for (PartialEvaluation pe : list) {
+			for (int i: pe.cc.charSet()) {
+				cs.remove(i);
+				if (cs.isEmpty())
+					break OUTER;
 			}
 		}
 		if (cs.isEmpty()) {

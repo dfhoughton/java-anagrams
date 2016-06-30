@@ -3,9 +3,9 @@ package dfh.anagrams;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * @author houghton
@@ -16,6 +16,7 @@ public class CharCount {
 	public int total = 0;
 	private boolean frozen = false;
 	private int hc;
+	private int[] charSet;
 
 	public CharCount(int size) {
 		counts = new int[size];
@@ -99,15 +100,22 @@ public class CharCount {
 	/**
 	 * @return the set of characters counted
 	 */
-	public Set<Integer> charSet() {
-		Set<Integer> set = new HashSet<>(counts.length);
-		for (int i = 0; i < counts.length; i++) {
-			int c = counts[i];
-			if (c > 0) {
-				set.add(i);
+	public int[] charSet() {
+		if (charSet == null) {
+			Set<Integer> set = new TreeSet<>();
+			for (int i = 0; i < counts.length; i++) {
+				int c = counts[i];
+				if (c > 0) {
+					set.add(i);
+				}
+			}
+			charSet = new int[set.size()];
+			int i = 0;
+			for (int c: set) {
+				charSet[i++] = c;
 			}
 		}
-		return set;
+		return charSet;
 	}
 
 	/**
