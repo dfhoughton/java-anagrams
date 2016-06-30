@@ -40,7 +40,7 @@ public class TrieNode {
 
 	public int size() {
 		int s = 1;
-		for (int i : jumpList()) {
+		for (int i : jumpList) {
 			s += children[i].size();
 		}
 		return s;
@@ -49,34 +49,31 @@ public class TrieNode {
 	/**
 	 * @return the list of non-null child indices
 	 */
-	public int[] jumpList() {
-		if (jumpList == null) {
-			if (children.length == 0) {
-				jumpList = EMPTY_JUMP_LIST;
-			} else {
-				int size = 0;
-				for (TrieNode n : children) {
-					if (n != null) {
-						size++;
-					}
+	public void makeJumpList() {
+		if (children.length == 0) {
+			jumpList = EMPTY_JUMP_LIST;
+		} else {
+			int size = 0;
+			for (TrieNode n : children) {
+				if (n != null) {
+					size++;
 				}
-				jumpList = new int[size];
-				int i = 0;
-				for (int j = 0; j < children.length; j++) {
-					if (children[j] != null) {
-						jumpList[i++] = j;
-					}
+			}
+			jumpList = new int[size];
+			int i = 0;
+			for (int j = 0; j < children.length; j++) {
+				if (children[j] != null) {
+					jumpList[i++] = j;
 				}
 			}
 		}
-		return jumpList;
 	}
 
 	public void allSingleWordsFromCharacterCount(PartialEvaluation pe, List<PartialEvaluation> list) {
 		if (terminal) {
 			list.add(pe);
 		}
-		for (int i : jumpList()) {
+		for (int i : jumpList) {
 			PartialEvaluation shorter = pe.add(i);
 			if (shorter != null) {
 				children[i].allSingleWordsFromCharacterCount(shorter, list);
@@ -89,9 +86,16 @@ public class TrieNode {
 	 */
 	public int terminalNodes() {
 		int n = terminal ? 1 : 0;
-		for (int i : jumpList()) {
+		for (int i : jumpList) {
 			n += children[i].terminalNodes();
 		}
 		return n;
+	}
+
+	public void freeze() {
+		makeJumpList();
+		for (int i: jumpList) {
+			children[i].freeze();
+		}
 	}
 }

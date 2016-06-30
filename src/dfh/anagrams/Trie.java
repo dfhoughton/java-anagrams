@@ -24,6 +24,7 @@ public class Trie {
 
 	public void freeze() {
 		cm.freeze();
+		root.freeze();
 	}
 
 	String translate(int[] word) {

@@ -75,6 +75,7 @@ public class Anagramizer {
 		} catch (IOException e) {
 			cli.die("IO exception while reading " + dictionary);
 		}
+		trie.freeze();
 		if (verbose) {
 			if (timeOperations) {
 				reportTiming(time[0]);
