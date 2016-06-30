@@ -83,23 +83,41 @@ public class TrieWalker {
 	}
 
 	class WordBucket {
-		ArrayList<String> words = new ArrayList<>();
+		String word;
+		int size = -1;
+		WordBucket parent;
 		CharCount cc;
 
 		WordBucket(CharCount cc) {
 			this.cc = cc;
 		}
+		
+		int size() {
+			if (size == -1) {
+				if (parent == null) {
+					size = 0;
+				} else {
+					size = 1 + parent.size();
+				}
+			}
+			return size;
+		}
 
 		List<String> dump() {
+			List<String> words = new ArrayList<>(size());
+			WordBucket n = this;
+			while (!(n == null || n.word == null)) {
+				words.add(n.word);
+				n = n.parent;
+			}
 			words.sort(null);
-			words.trimToSize();
 			return words;
 		}
 
 		WordBucket fill(PartialEvaluation pe) {
 			WordBucket wb = new WordBucket(pe.cc);
-			wb.words.addAll(words);
-			wb.words.add(pe.translate(trie));
+			wb.parent = this;
+			wb.word = pe.translate(trie);
 			return wb;
 		}
 	}
