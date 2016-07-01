@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -55,14 +57,14 @@ public class TrieWalker {
 		}
 		return size;
 	}
-	
+
 	public int numberCharacterCounts() {
 		return partials.size();
 	}
-	
+
 	public int numberPartialEvaluations() {
 		int n = 0;
-		for (List<?> l: partials.values()) {
+		for (List<?> l : partials.values()) {
 			n += l.size();
 		}
 		return n;
@@ -91,7 +93,7 @@ public class TrieWalker {
 		WordBucket(CharCount cc) {
 			this.cc = cc;
 		}
-		
+
 		int size() {
 			if (size == -1) {
 				if (parent == null) {
@@ -148,26 +150,16 @@ public class TrieWalker {
 				}
 			}
 		});
-		final Queue<WordBucket> collectionQueue = new ConcurrentLinkedQueue<>();
+		Queue<WordBucket> collectionQueue = new LinkedList<>();
 		collectionQueue.add(new WordBucket(baseCount));
-		while (true) {
-			while (!collectionQueue.isEmpty()) {
-				final WordBucket wb = collectionQueue.remove();
-				pool.run(() -> {
-					if (wb.cc.done()) {
-						synchronized (anagrams) {
-							anagrams.add(wb.dump());
-						}
-					} else {
-						for (PartialEvaluation pe : partials.get(wb.cc)) {
-							collectionQueue.add(wb.fill(pe));
-						}
-					}
-				});
-			}
-			pool.flush();
-			if (collectionQueue.isEmpty()) {
-				break;
+		while (!collectionQueue.isEmpty()) {
+			WordBucket wb = collectionQueue.remove();
+			if (wb.cc.done()) {
+				anagrams.add(wb.dump());
+			} else {
+				for (PartialEvaluation pe : partials.get(wb.cc)) {
+					collectionQueue.add(wb.fill(pe));
+				}
 			}
 		}
 		afterCollect.run();
@@ -181,10 +173,35 @@ public class TrieWalker {
 				Runnable r;
 				synchronized (partials) {
 					final CharCount cc = work.remove();
-					final List<PartialEvaluation> list = new ArrayList<>();
+					final List<PartialEvaluation> list = new LinkedList<>();
 					partials.put(cc, list);
 					r = () -> {
 						trie.allSingleWordsFromCharacterCount(cc, list);
+						
+						// prune the tree
+						int[] charCount = new int[cc.counts.length];
+						for (PartialEvaluation pe: list) {
+							for (int i: pe.charSet()) {
+								charCount[i]++;
+							}
+						}
+						int best = 0, bestCount = 0;
+						for (int i = 0; i < charCount.length; i++) {
+							int bc = charCount[i];
+							if (bc == 0)
+								continue;
+							if (bestCount == 0 || bc < bestCount) {
+								best = i;
+								bestCount = bc;
+							}
+						}
+						for (Iterator<PartialEvaluation> i = list.iterator(); i.hasNext();) {
+							PartialEvaluation pe = i.next();
+							if (!pe.charSet().contains(best)) {
+								i.remove();
+							}
+						}
+						
 						synchronized (partials) {
 							for (PartialEvaluation pe : list) {
 								if (!(pe.done() || partials.containsKey(pe.cc))) {

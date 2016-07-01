@@ -62,7 +62,6 @@ public class Trie {
 		} else {
 			list.clear();
 		}
-		((ArrayList<?>) list).trimToSize();
 	}
 
 	/**

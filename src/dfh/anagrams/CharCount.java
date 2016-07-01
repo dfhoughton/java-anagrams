@@ -74,7 +74,7 @@ public class CharCount {
 	}
 
 	public boolean equals(Object o) {
-		if (o instanceof CharCount) {
+		try {
 			CharCount cc = (CharCount) o;
 			if (total != cc.total) {
 				return false;
@@ -85,8 +85,9 @@ public class CharCount {
 				}
 			}
 			return true;
+		} catch (ClassCastException e) {
+			return false;
 		}
-		return false;
 	}
 
 	public int hashCode() {

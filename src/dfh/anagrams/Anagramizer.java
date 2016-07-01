@@ -59,10 +59,10 @@ public class Anagramizer {
 		}
 		String phrase = buffer.toString().trim();
 		Trie trie = new Trie(normalizer);
-		final long[] time = { 0 };
+		final long[] time = { 0 }, firstTime = {0};
 		if (verbose) {
 			if (timeOperations) {
-				time[0] = System.currentTimeMillis();
+				firstTime[0] = time[0] = System.currentTimeMillis();
 			}
 			System.out.println("reading dictionary...");
 		}
@@ -110,6 +110,8 @@ public class Anagramizer {
 				System.out.println("DONE!");
 				if (timeOperations) {
 					reportTiming(time[0]);
+					System.out.println("total elapsed time:");
+					reportTiming(firstTime[0]);
 				}
 				System.out.println();
 			};

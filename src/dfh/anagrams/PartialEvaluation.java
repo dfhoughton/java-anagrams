@@ -1,6 +1,8 @@
 package dfh.anagrams;
 
 import java.util.Arrays;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * A word plus a character count. In the process of calculating anagrams we
@@ -18,11 +20,21 @@ public class PartialEvaluation {
 	int n = 0;
 	boolean frozen = false;
 	CharCount cc;
+	private Set<Integer> charSet;
 
 	boolean done() {
 		return cc.total == 0;
 	}
 
+	Set<Integer> charSet() {
+		if (charSet == null) {
+			charSet = new TreeSet<>();
+			for (int i : word)
+				charSet.add(i);
+		}
+		return charSet;
+	}
+	
 	public PartialEvaluation(CharCount cc) {
 		word = new int[cc.total];
 		this.cc = cc.dup();
@@ -62,6 +74,7 @@ public class PartialEvaluation {
 	public void freeze() {
 		if (!frozen) {
 			frozen = true;
+			charSet = null;
 			word = Arrays.copyOf(word, n);
 		}
 	}
