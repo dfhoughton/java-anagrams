@@ -84,19 +84,18 @@ public class TrieWalker {
 	}
 
 	class WordBucket {
-		String word;
 		int size = -1;
 		WordBucket parent;
-		CharCount cc;
+		PartialEvaluation pe;
 
-		WordBucket(CharCount cc) {
-			this.cc = cc;
+		public WordBucket(PartialEvaluation pe) {
+			this.pe = pe;
 		}
 
 		int size() {
 			if (size == -1) {
 				if (parent == null) {
-					size = 0;
+					size = 1;
 				} else {
 					size = 1 + parent.size();
 				}
@@ -107,8 +106,8 @@ public class TrieWalker {
 		List<String> dump() {
 			List<String> words = new ArrayList<>(size());
 			WordBucket n = this;
-			while (!(n == null || n.word == null)) {
-				words.add(n.word);
+			while (n != null) {
+				words.add(n.pe.translate(trie));
 				n = n.parent;
 			}
 			words.sort(null);
@@ -116,9 +115,8 @@ public class TrieWalker {
 		}
 
 		WordBucket fill(PartialEvaluation pe) {
-			WordBucket wb = new WordBucket(pe.cc);
+			WordBucket wb = new WordBucket(pe);
 			wb.parent = this;
-			wb.word = pe.translate(trie);
 			return wb;
 		}
 	}
@@ -126,13 +124,14 @@ public class TrieWalker {
 	private void collect(CharCount baseCount, Runnable stowerAction) {
 		beforeCollect.run();
 		Queue<WordBucket> collectionQueue = new LinkedList<>();
-		collectionQueue.add(new WordBucket(baseCount));
+		for (PartialEvaluation pe : partials.get(baseCount))
+			collectionQueue.add(new WordBucket(pe));
 		while (!collectionQueue.isEmpty()) {
 			WordBucket wb = collectionQueue.remove();
-			if (wb.cc.done()) {
+			if (wb.pe.cc.done()) {
 				stower.handle(wb.dump());
 			} else {
-				for (PartialEvaluation pe : partials.get(wb.cc)) {
+				for (PartialEvaluation pe : partials.get(wb.pe.cc)) {
 					collectionQueue.add(wb.fill(pe));
 				}
 			}
