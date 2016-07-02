@@ -8,7 +8,6 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +31,7 @@ public class Anagramizer {
 				{ { "out", 'o', FileCoercion.C }, { "file for output" } }, //
 				{ { "verbose", 'v' }, { "provide progress information" } }, //
 				{ { "time", 't' }, { "if verbose, time operations" } }, //
+				{{"uniq", 'u'},{"return a *sorted* list of *unique* anagrams"}},//
 				{ { "threads", Integer.class, Runtime.getRuntime().availableProcessors() + 1 },
 						{ "maximum number of threads" }, { Range.positive() } },//
 		};
@@ -44,7 +44,7 @@ public class Anagramizer {
 		}
 		if (outFile != null) {
 			try {
-				out = new PrintStream(new BufferedOutputStream(new FileOutputStream(outFile)));
+				out = new PrintStream(new BufferedOutputStream(new FileOutputStream(outFile)), true);
 			} catch (FileNotFoundException e) {
 				cli.die("could not write to " + outFile);
 			}
@@ -108,7 +108,20 @@ public class Anagramizer {
 			}
 		}
 		trie.freeze();
-		TrieWalker walker = new TrieWalker(trie, threads);
+		AnagramStower stower;
+		Runnable stowerAction;
+		if (cli.bool("uniq")) {
+			final UniqStower as = (UniqStower) (stower = new UniqStower(out));
+			stowerAction = () -> {
+				if (verbose) {
+					System.out.printf("%,d %s found\n\n", as.size(), inflect("anagram", as.size()));
+				}
+			};
+		} else {
+			stower = new PassThroughStower(out);
+			stowerAction = () ->{};
+		}
+		TrieWalker walker = new TrieWalker(trie, stower, threads);
 		if (verbose) {
 			walker.beforeWalk = () -> {
 				System.out.println("collecting all necessary partial evaluations...");
@@ -136,18 +149,7 @@ public class Anagramizer {
 				System.out.println();
 			};
 		}
-		Collection<List<String>> anagrams = walker.anagrams(phrase);
-		if (verbose) {
-			System.out.printf("%,d %s found\n\n", anagrams.size(), inflect("anagram", anagrams.size()));
-		}
-		for (List<String> anagram : anagrams) {
-			for (String word : anagram) {
-				out.print(word);
-				out.print(' ');
-			}
-			out.println();
-		}
-		out.flush();
+		walker.anagrams(phrase, stowerAction);
 	}
 
 	private static void reportTiming(long time) {

@@ -1,16 +1,12 @@
 package dfh.anagrams;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import dfh.thread.ThreadPuddle;
@@ -35,14 +31,17 @@ public class TrieWalker {
 	}, beforeCollect = () -> {
 	}, afterCollect = () -> {
 	};
+	private AnagramStower stower;
+	private int threads;
 
-	public TrieWalker(Trie trie) {
-		this(trie, Runtime.getRuntime().availableProcessors() + 1);
+	public TrieWalker(Trie trie, AnagramStower stower) {
+		this(trie, stower, Runtime.getRuntime().availableProcessors() + 1);
 	}
 
-	public TrieWalker(Trie trie, int threads) {
+	public TrieWalker(Trie trie, AnagramStower stower, int threads) {
 		this.trie = trie;
-		pool = new ThreadPuddle(threads);
+		this.stower = stower;
+		this.threads = threads;
 	}
 
 	/**
@@ -70,10 +69,10 @@ public class TrieWalker {
 		return n;
 	}
 
-	public Collection<List<String>> anagrams(String phrase) {
+	public void anagrams(String phrase, Runnable stowerAction) {
 		CharCount baseCount = trie.characterCount(phrase);
 		if (baseCount == null) {
-			return new ArrayList<>();
+			return;
 		}
 		synchronized (partials) {
 			if (!partials.containsKey(baseCount)) {
@@ -81,7 +80,7 @@ public class TrieWalker {
 			}
 		}
 		walk(baseCount.total);
-		return collect(baseCount);
+		collect(baseCount, stowerAction);
 	}
 
 	class WordBucket {
@@ -124,38 +123,14 @@ public class TrieWalker {
 		}
 	}
 
-	private Collection<List<String>> collect(CharCount baseCount) {
+	private void collect(CharCount baseCount, Runnable stowerAction) {
 		beforeCollect.run();
-		// de-duping set
-		final Set<List<String>> anagrams = new TreeSet<>(new Comparator<List<String>>() {
-			public int compare(List<String> a, List<String> b) {
-				int i = 0;
-				while (true) {
-					boolean ab = i >= a.size(), bb = i >= b.size();
-					if (ab && bb) {
-						return 0;
-					}
-					if (ab) {
-						return -1;
-					}
-					if (bb) {
-						return 1;
-					}
-					String aw = a.get(i), bw = b.get(i);
-					int c = aw.compareTo(bw);
-					if (c != 0) {
-						return c;
-					}
-					i++;
-				}
-			}
-		});
 		Queue<WordBucket> collectionQueue = new LinkedList<>();
 		collectionQueue.add(new WordBucket(baseCount));
 		while (!collectionQueue.isEmpty()) {
 			WordBucket wb = collectionQueue.remove();
 			if (wb.cc.done()) {
-				anagrams.add(wb.dump());
+				stower.handle(wb.dump());
 			} else {
 				for (PartialEvaluation pe : partials.get(wb.cc)) {
 					collectionQueue.add(wb.fill(pe));
@@ -163,11 +138,12 @@ public class TrieWalker {
 			}
 		}
 		afterCollect.run();
-		return anagrams;
+		stower.done(stowerAction);
 	}
 
 	private void walk(final int longestWord) {
 		beforeWalk.run();
+		pool = new ThreadPuddle(threads);
 		while (true) {
 			while (!work.isEmpty()) {
 				Runnable r;
@@ -177,11 +153,11 @@ public class TrieWalker {
 					partials.put(cc, list);
 					r = () -> {
 						trie.allSingleWordsFromCharacterCount(cc, list);
-						
+
 						// prune the tree
 						int[] charCount = new int[cc.counts.length];
-						for (PartialEvaluation pe: list) {
-							for (int i: pe.charSet()) {
+						for (PartialEvaluation pe : list) {
+							for (int i : pe.charSet()) {
 								charCount[i]++;
 							}
 						}
@@ -201,7 +177,7 @@ public class TrieWalker {
 								i.remove();
 							}
 						}
-						
+
 						synchronized (partials) {
 							for (PartialEvaluation pe : list) {
 								if (!(pe.done() || partials.containsKey(pe.cc))) {
@@ -218,5 +194,6 @@ public class TrieWalker {
 				break;
 			}
 		}
+		pool.die();
 	}
 }
