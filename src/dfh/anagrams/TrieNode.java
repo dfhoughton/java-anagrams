@@ -72,6 +72,7 @@ public class TrieNode {
 	public void allSingleWordsFromCharacterCount(PartialEvaluation pe, List<PartialEvaluation> list) {
 		if (terminal) {
 			list.add(pe);
+			if (pe.done()) return;
 		}
 		for (int i : jumpList) {
 			PartialEvaluation shorter = pe.add(i);
