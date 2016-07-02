@@ -1,17 +1,17 @@
 package dfh.anagrams;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class Trie {
 	TrieNode root = new TrieNode();
-	CharMap cm = new CharMap();
+	CharMap cm;
 	StringNormalizer normalizer;
 
-	public Trie(StringNormalizer normalizer) {
+	public Trie(StringNormalizer normalizer ,CharMap cm) {
 		this.normalizer = normalizer;
+		this.cm = cm;
 	}
 
 	public void addWord(String word) {
@@ -23,7 +23,6 @@ public class Trie {
 	}
 
 	public void freeze() {
-		cm.freeze();
 		root.freeze();
 	}
 
@@ -49,7 +48,7 @@ public class Trie {
 		for (int i: cc.charSet())
 			cs.add(i);
 		OUTER: for (PartialEvaluation pe : list) {
-			for (int i: pe.cc.charSet()) {
+			for (int i: pe.word) {
 				cs.remove(i);
 				if (cs.isEmpty())
 					break OUTER;

@@ -9,7 +9,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import dfh.cli.Cli;
 import dfh.cli.coercions.FileCoercion;
@@ -58,24 +61,41 @@ public class Anagramizer {
 			buffer.append(s).append(' ');
 		}
 		String phrase = buffer.toString().trim();
-		Trie trie = new Trie(normalizer);
-		final long[] time = { 0 }, firstTime = {0};
+		final long[] time = { 0 }, firstTime = { 0 };
+
 		if (verbose) {
 			if (timeOperations) {
 				firstTime[0] = time[0] = System.currentTimeMillis();
 			}
 			System.out.println("reading dictionary...");
 		}
-		try (BufferedReader br = new BufferedReader(new FileReader(dictionary))) {
-			for (String line; (line = br.readLine()) != null;) {
-				trie.addWord(line);
+		Trie trie;
+		{ // construction scope for temporary data structures
+			Map<Character, int[]> frequencyMap = new TreeMap<>();
+			List<String> words = new LinkedList<>();
+			try (BufferedReader br = new BufferedReader(new FileReader(dictionary))) {
+				for (String line; (line = br.readLine()) != null;) {
+					String word = normalizer.normalize(line);
+					words.add(word);
+					for (char c : word.toCharArray()) {
+						int[] counts = frequencyMap.get(c);
+						if (counts == null)
+							frequencyMap.put(c, counts = new int[] { 0 });
+						counts[0]++;
+					}
+				}
+			} catch (FileNotFoundException e) {
+				cli.die("could not find " + dictionary);
+			} catch (IOException e) {
+				cli.die("IO exception while reading " + dictionary);
 			}
-		} catch (FileNotFoundException e) {
-			cli.die("could not find " + dictionary);
-		} catch (IOException e) {
-			cli.die("IO exception while reading " + dictionary);
+			CharMap cm = new CharMap(frequencyMap);
+			trie = new Trie(normalizer, cm);
+			for (String word : words)
+				trie.addWord(word);
+			trie.freeze();
 		}
-		trie.freeze();
+
 		if (verbose) {
 			if (timeOperations) {
 				reportTiming(time[0]);
@@ -120,8 +140,8 @@ public class Anagramizer {
 		if (verbose) {
 			System.out.printf("%,d %s found\n\n", anagrams.size(), inflect("anagram", anagrams.size()));
 		}
-		for (List<String> words : anagrams) {
-			for (String word : words) {
+		for (List<String> anagram : anagrams) {
+			for (String word : anagram) {
 				out.print(word);
 				out.print(' ');
 			}
