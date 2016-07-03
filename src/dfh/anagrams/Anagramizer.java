@@ -15,6 +15,7 @@ import java.util.TreeMap;
 
 import dfh.cli.Cli;
 import dfh.cli.coercions.FileCoercion;
+import dfh.cli.rules.IntSet;
 import dfh.cli.rules.Range;
 
 public class Anagramizer {
@@ -33,6 +34,9 @@ public class Anagramizer {
 				{ { "time", 't' }, { "if verbose, time operations" } }, //
 				{ { "uniq", 'u' }, { "return unique anagrams" } }, //
 				{ { "sort", 's' }, { "return a *sorted* list of *unique* anagrams" } }, //
+				{ { "shuffle", Integer.class, 0 },
+						{ "shuffle generation order; useful with --limit; 0 = no shuffling; 1 = shuffle some; 2 = shuffle always" },
+						{ new IntSet(0, 1, 2) } }, //
 				{ { "limit", 'l', 'n', Integer.class }, { "return at most this many anagrams" }, { Range.positive() } }, //
 				{ { "threads", Integer.class, Runtime.getRuntime().availableProcessors() + 1 },
 						{ "maximum number of threads" }, { Range.positive() } },//
@@ -162,7 +166,8 @@ public class Anagramizer {
 				System.out.println();
 			};
 		}
-		walker.anagrams(phrase, stowerAction);
+		boolean shuffle = cli.integer("shuffle") > 0, shuffleWell = cli.integer("shuffle") == 2;
+		walker.anagrams(phrase, stowerAction, shuffle, shuffleWell);
 	}
 
 	private static void reportTiming(long time) {

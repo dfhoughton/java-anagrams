@@ -17,7 +17,6 @@ public class TrieNode {
 	 * @param i
 	 */
 	public void add(int[] translation, int i) {
-		// assert !frozen;
 		if (i == translation.length) {
 			terminal = true;
 		} else {

@@ -1,6 +1,7 @@
 package dfh.anagrams;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -69,7 +70,7 @@ public class TrieWalker {
 		return n;
 	}
 
-	public void anagrams(String phrase, Runnable stowerAction) {
+	public void anagrams(String phrase, Runnable stowerAction, boolean shuffle, boolean shuffleWell) {
 		pool = new ThreadPuddle(threads);
 		CharCount baseCount = trie.characterCount(phrase);
 		if (baseCount == null) {
@@ -81,7 +82,7 @@ public class TrieWalker {
 			}
 		}
 		walk(baseCount.total);
-		collect(baseCount, stowerAction);
+		collect(baseCount, stowerAction, shuffle, shuffleWell);
 		pool.die();
 	}
 
@@ -123,10 +124,13 @@ public class TrieWalker {
 		}
 	}
 
-	private void collect(CharCount baseCount, Runnable stowerAction) {
+	private void collect(CharCount baseCount, Runnable stowerAction, boolean shuffle, boolean shuffleWell) {
 		beforeCollect.run();
-		for (PartialEvaluation pe : partials.get(baseCount)) {
-			pool.run(()->{
+		List<PartialEvaluation> startList = partials.get(baseCount);
+		if (shuffle)
+			Collections.shuffle(startList);
+		for (PartialEvaluation pe : startList) {
+			pool.run(() -> {
 				if (stower.test.test())
 					return;
 				Queue<WordBucket> queue = new LinkedList<>();
@@ -138,7 +142,10 @@ public class TrieWalker {
 							stower.handle(wb.dump());
 						}
 					} else {
-						for (PartialEvaluation pe2 : partials.get(wb.pe.cc)) {
+						List<PartialEvaluation> nextList = partials.get(wb.pe.cc);
+						if (shuffleWell)
+							Collections.shuffle(nextList);
+						for (PartialEvaluation pe2 : nextList) {
 							queue.add(wb.fill(pe2));
 						}
 					}
@@ -163,6 +170,13 @@ public class TrieWalker {
 						trie.allSingleWordsFromCharacterCount(cc, list);
 
 						// prune the tree
+						// keep only those partials that decremented the least
+						// frequently decremented
+						// character count -- these must be decremented in any
+						// successful anagram anyway,
+						// and this reduces the size of the search tree and thus
+						// the number of duplicates
+						// that would otherwise have to be jettisoned
 						int[] charCount = new int[cc.counts.length];
 						for (PartialEvaluation pe : list) {
 							for (int i : pe.charSet()) {
