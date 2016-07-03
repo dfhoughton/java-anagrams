@@ -22,9 +22,14 @@ public class UniqStower extends AnagramStower {
 	public void handle(List<String> anagram) {
 		if (!test.test()) {
 			StringBuffer b = new StringBuffer();
-			for (String s : anagram)
-				b.append(s).append(' ');
-			String s = b.toString().trim();
+			int last = anagram.size() - 1;
+			for (int i = 0; i < anagram.size(); i++) {
+				String word = anagram.get(i);
+				b.append(word);
+				if (i != last)
+					b.append(' ');
+			}
+			String s = b.toString();
 			if (!known.contains(s)) {
 				known.add(s);
 				out.println(s);

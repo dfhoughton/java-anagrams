@@ -13,11 +13,15 @@ public class PassThroughStower extends AnagramStower {
 	@Override
 	public void handle(List<String> anagram) {
 		if (!test.test()) {
-			for (String word : anagram) {
+			int last = anagram.size() - 1;
+			for (int i = 0; i < anagram.size(); i++) {
+				String word = anagram.get(i);
 				out.print(word);
-				out.print(' ');
+				if (i == last)
+					out.println();
+				else
+					out.print(' ');
 			}
-			out.println();
 			n += 1;
 		}
 	}

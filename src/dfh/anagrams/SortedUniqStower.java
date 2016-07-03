@@ -51,11 +51,15 @@ public class SortedUniqStower extends AnagramStower {
 	public void done(Runnable beforeDone) {
 		beforeDone.run();
 		for (List<String> anagram : anagrams) {
-			for (String word : anagram) {
+			int last = anagram.size() - 1;
+			for (int i = 0; i < anagram.size(); i++) {
+				String word = anagram.get(i);
 				out.print(word);
-				out.print(' ');
+				if (i == last)
+					out.println();
+				else
+					out.print(' ');
 			}
-			out.println();
 		}
 		out.flush();
 	}
