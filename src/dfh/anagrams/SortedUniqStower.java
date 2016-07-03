@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 public class SortedUniqStower extends AnagramStower {
-
+	
 	public SortedUniqStower(PrintStream out) {
 		super(out);
 	}
@@ -34,7 +34,6 @@ public class SortedUniqStower extends AnagramStower {
 		}
 	};
 	Set<List<String>> anagrams = new TreeSet<>(cmp);
-	PrintStream out;
 
 	@Override
 	public int size() {

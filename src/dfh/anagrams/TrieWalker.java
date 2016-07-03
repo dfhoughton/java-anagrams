@@ -183,16 +183,26 @@ public class TrieWalker {
 								charCount[i]++;
 							}
 						}
-						int best = 0, bestCount = 0;
+						int bestCount = 0;
+						LinkedList<Integer> optima = new LinkedList<>();
 						for (int i = 0; i < charCount.length; i++) {
 							int bc = charCount[i];
 							if (bc == 0)
 								continue;
-							if (bestCount == 0 || bc < bestCount) {
-								best = i;
+							if (bestCount == 0) {
+								optima.add(i);
+								bestCount = bc;
+							} else if (bestCount == bc) {
+								optima.add(i);
+							} else if (bestCount > bc) {
+								optima.clear();
+								optima.add(i);
 								bestCount = bc;
 							}
 						}
+						if (optima.isEmpty()) return;
+						Collections.sort(optima);
+						int best = optima.getFirst();
 						for (Iterator<PartialEvaluation> i = list.iterator(); i.hasNext();) {
 							PartialEvaluation pe = i.next();
 							if (!pe.charSet().contains(best)) {
