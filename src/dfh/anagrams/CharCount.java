@@ -73,6 +73,7 @@ public class CharCount {
 		return counts[i] > 0;
 	}
 
+	@Override
 	public boolean equals(Object o) {
 		try {
 			CharCount cc = (CharCount) o;
@@ -90,6 +91,7 @@ public class CharCount {
 		}
 	}
 
+	@Override
 	public int hashCode() {
 		if (!frozen) {
 			hc = Arrays.hashCode(counts);

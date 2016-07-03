@@ -1,0 +1,13 @@
+This utility allows you to generate all the possible anagrams of
+a phrase given a particular word list and the following restrictions:
+
+1. case is normalized to lowercase
+
+2. all non-word characters are stripped away
+
+3. two arrangements of the same words are considered the same anagram
+
+The longer the phrase you seek to extract anagrams from, the more memory you will need.
+You can save memory by not requiring that only unique or sorted anagrams be returned, as this
+requires that anagrams be passed through a sorted set first. If you sort, all the anagrams are returned
+at the end. If you only require uniqueness, they will be streamed out as they are discovered.

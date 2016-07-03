@@ -16,7 +16,7 @@ public class CharMap {
 		list.sort(c);
 		int min = Integer.MAX_VALUE, max = Integer.MIN_VALUE;
 		for (char ch : list) {
-			int i = (int) ch;
+			int i = ch;
 			if (i > max)
 				max = i;
 			if (i < min)

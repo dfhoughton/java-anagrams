@@ -13,8 +13,8 @@
 				<attribute name="Main-Class" value="dfh.anagrams.Anagramizer" />
 				<attribute name="Class-Path" value="." />
 			</manifest>
-			<fileset dir="${dir.buildfile}/bin">
-			</fileset>
+			<fileset file="${dir.buildfile}/usage.txt"/>
+			<fileset dir="${dir.buildfile}/bin"/>
 			<fileset dir="${dir.jarfile}/git_projects/ThreadPuddle/bin">
 				<exclude name="**/*Basic*"/>
 			</fileset>

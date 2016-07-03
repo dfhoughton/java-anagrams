@@ -70,6 +70,7 @@ public class TrieWalker {
 	}
 
 	public void anagrams(String phrase, Runnable stowerAction) {
+		pool = new ThreadPuddle(threads);
 		CharCount baseCount = trie.characterCount(phrase);
 		if (baseCount == null) {
 			return;
@@ -81,6 +82,7 @@ public class TrieWalker {
 		}
 		walk(baseCount.total);
 		collect(baseCount, stowerAction);
+		pool.die();
 	}
 
 	class WordBucket {
@@ -123,26 +125,33 @@ public class TrieWalker {
 
 	private void collect(CharCount baseCount, Runnable stowerAction) {
 		beforeCollect.run();
-		Queue<WordBucket> collectionQueue = new LinkedList<>();
-		for (PartialEvaluation pe : partials.get(baseCount))
-			collectionQueue.add(new WordBucket(pe));
-		while (!collectionQueue.isEmpty()) {
-			WordBucket wb = collectionQueue.remove();
-			if (wb.pe.cc.done()) {
-				stower.handle(wb.dump());
-			} else {
-				for (PartialEvaluation pe : partials.get(wb.pe.cc)) {
-					collectionQueue.add(wb.fill(pe));
+		for (PartialEvaluation pe : partials.get(baseCount)) {
+			pool.run(()->{
+				if (stower.test.test())
+					return;
+				Queue<WordBucket> queue = new LinkedList<>();
+				queue.add(new WordBucket(pe));
+				while (!(queue.isEmpty() || stower.test.test())) {
+					WordBucket wb = queue.remove();
+					if (wb.pe.cc.done()) {
+						synchronized (stower) {
+							stower.handle(wb.dump());
+						}
+					} else {
+						for (PartialEvaluation pe2 : partials.get(wb.pe.cc)) {
+							queue.add(wb.fill(pe2));
+						}
+					}
 				}
-			}
+			});
 		}
+		pool.flush();
 		afterCollect.run();
 		stower.done(stowerAction);
 	}
 
 	private void walk(final int longestWord) {
 		beforeWalk.run();
-		pool = new ThreadPuddle(threads);
 		while (true) {
 			while (!work.isEmpty()) {
 				Runnable r;
@@ -193,6 +202,5 @@ public class TrieWalker {
 				break;
 			}
 		}
-		pool.die();
 	}
 }

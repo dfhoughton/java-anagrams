@@ -31,7 +31,9 @@ public class Anagramizer {
 				{ { "out", 'o', FileCoercion.C }, { "file for output" } }, //
 				{ { "verbose", 'v' }, { "provide progress information" } }, //
 				{ { "time", 't' }, { "if verbose, time operations" } }, //
-				{{"uniq", 'u'},{"return a *sorted* list of *unique* anagrams"}},//
+				{ { "uniq", 'u' }, { "return unique anagrams" } }, //
+				{ { "sort", 's' }, { "return a *sorted* list of *unique* anagrams" } }, //
+				{ { "limit", 'l', 'n', Integer.class }, { "return at most this many anagrams" }, { Range.positive() } }, //
 				{ { "threads", Integer.class, Runtime.getRuntime().availableProcessors() + 1 },
 						{ "maximum number of threads" }, { Range.positive() } },//
 		};
@@ -39,6 +41,7 @@ public class Anagramizer {
 		cli.parse(args);
 		File dictionary = (File) cli.object("dictionary"), outFile = (File) cli.object("out");
 		int threads = cli.integer("threads");
+		Integer limit = cli.integer("limit");
 		if (!(dictionary.exists() && dictionary.isFile())) {
 			cli.die("The provided dictionary, " + dictionary + ", does not appear to be a word list.");
 		}
@@ -110,7 +113,14 @@ public class Anagramizer {
 		trie.freeze();
 		AnagramStower stower;
 		Runnable stowerAction;
-		if (cli.bool("uniq")) {
+		if (cli.bool("sort")) {
+			final SortedUniqStower as = (SortedUniqStower) (stower = new SortedUniqStower(out));
+			stowerAction = () -> {
+				if (verbose) {
+					System.out.printf("%,d %s found\n\n", as.size(), inflect("anagram", as.size()));
+				}
+			};
+		} else if (cli.bool("uniq")) {
 			final UniqStower as = (UniqStower) (stower = new UniqStower(out));
 			stowerAction = () -> {
 				if (verbose) {
@@ -119,8 +129,11 @@ public class Anagramizer {
 			};
 		} else {
 			stower = new PassThroughStower(out);
-			stowerAction = () ->{};
+			stowerAction = () -> {
+			};
 		}
+		if (limit != null)
+			stower.setTest(() -> stower.size() >= limit);
 		TrieWalker walker = new TrieWalker(trie, stower, threads);
 		if (verbose) {
 			walker.beforeWalk = () -> {
