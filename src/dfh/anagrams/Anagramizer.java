@@ -57,12 +57,7 @@ public class Anagramizer {
 			}
 		}
 		final boolean verbose = cli.bool("verbose"), timeOperations = cli.bool("time");
-		StringNormalizer normalizer = new StringNormalizer() {
-			@Override
-			public String normalize(String word) {
-				return word.replaceAll("[^\\p{L}\\p{Nd}]+", "").toLowerCase();
-			}
-		};
+		StringNormalizer normalizer = (word) -> word.replaceAll("[^\\p{L}\\p{Nd}]+", "").toLowerCase();
 		StringBuffer buffer = new StringBuffer();
 		for (String s : cli.slurpedArguments()) {
 			buffer.append(s).append(' ');
