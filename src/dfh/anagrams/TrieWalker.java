@@ -2,6 +2,7 @@ package dfh.anagrams;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -133,10 +134,10 @@ public class TrieWalker {
 			pool.run(() -> {
 				if (stower.test.test())
 					return;
-				Queue<WordBucket> queue = new LinkedList<>();
+				Deque<WordBucket> queue = new LinkedList<>();
 				queue.add(new WordBucket(pe));
 				while (!(queue.isEmpty() || stower.test.test())) {
-					WordBucket wb = queue.remove();
+					WordBucket wb = queue.pop();
 					if (wb.pe.cc.done()) {
 						synchronized (stower) {
 							stower.handle(wb.dump());
@@ -146,7 +147,7 @@ public class TrieWalker {
 						if (shuffleWell)
 							Collections.shuffle(nextList);
 						for (PartialEvaluation pe2 : nextList) {
-							queue.add(wb.fill(pe2));
+							queue.push(wb.fill(pe2));
 						}
 					}
 				}
