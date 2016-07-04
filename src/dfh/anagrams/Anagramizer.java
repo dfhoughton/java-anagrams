@@ -208,11 +208,7 @@ public class Anagramizer {
 	}
 
 	private static String inflect(String word, int n) {
-		if (n == 1) {
-			return word;
-		} else {
-			return word + "s";
-		}
+		return n == 1 ? word : word + "s";
 	}
 
 }
