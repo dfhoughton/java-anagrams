@@ -64,6 +64,7 @@ public class PartialEvaluation {
 	public String translate(Trie trie) {
 		if (w == null) {
 			w = trie.translate(word);
+			word = null;
 		}
 		return w;
 	}

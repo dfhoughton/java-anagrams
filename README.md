@@ -59,3 +59,10 @@ Anyway, here it is. You will need a word list for it to work from, and you may w
 to tinker with its string normalization algorithm if it does not suit whatever
 language you're working with -- currently it drops all non-word, non-numeric characters, but
 Java's definition of what these are, `[^\p{L}\p{Nd}]`, might not suit you.
+
+Note, the reason any version of this algorithm requires memory is that it is a dynamic
+programming algorithm: it accelerates the solution of a combinatorially complex problem
+by caching partial results, but because it has to cache partial results, it needs to
+consume memory. After a point -- a point much sooner than you might expect -- you run out
+of memory for the cache.
+

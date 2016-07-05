@@ -138,7 +138,7 @@ public class TrieWalker {
 				queue.add(new WordBucket(pe));
 				while (!(queue.isEmpty() || stower.test.test())) {
 					WordBucket wb = queue.pop();
-					if (wb.pe.cc.done()) {
+					if (wb.pe.done()) {
 						synchronized (stower) {
 							stower.handle(wb.dump());
 						}
