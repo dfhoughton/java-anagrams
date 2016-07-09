@@ -136,4 +136,15 @@ public class CharCount {
 		}
 		return list;
 	}
+	
+	@Override
+	public String toString() {
+		StringBuffer b = new StringBuffer();
+		b.append(total);
+		for (int i = 1; i < counts.length; i++) {
+			b.append('.');
+			b.append(counts[i]);
+		}
+		return b.toString();
+	}
 }

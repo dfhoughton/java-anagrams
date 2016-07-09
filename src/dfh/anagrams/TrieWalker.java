@@ -4,11 +4,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import dfh.thread.ThreadPuddle;
@@ -32,6 +35,9 @@ public class TrieWalker {
 	public Runnable beforeWalk = () -> {
 	}, beforeCollect = () -> {
 	}, afterCollect = () -> {
+	}, beforeClean = () -> {
+	};
+	AfterClean afterClean = (a, b, c) -> {
 	};
 	private AnagramStower stower;
 	private int threads;
@@ -83,8 +89,51 @@ public class TrieWalker {
 			}
 		}
 		walk(baseCount.total);
+		clean();
 		collect(baseCount, stowerAction, shuffle, shuffleWell);
 		pool.die();
+	}
+
+	/**
+	 * Recursively remove from the partial evaluations any branches that cannot
+	 * lead to an anagram.
+	 */
+	private void clean() {
+		beforeClean.run();
+		int branchCount = 0, finalBranchCount = 0, partialCount = partials.size();
+		for (List<PartialEvaluation> l : partials.values())
+			branchCount += l.size();
+		Set<CharCount> duds = new HashSet<>(), buffer = new HashSet<>();
+		for (Iterator<Entry<CharCount, List<PartialEvaluation>>> i = partials.entrySet().iterator(); i.hasNext();) {
+			Entry<CharCount, List<PartialEvaluation>> e = i.next();
+			if (e.getValue().isEmpty()) {
+				i.remove();
+				duds.add(e.getKey());
+			}
+		}
+		while (!duds.isEmpty()) {
+			for (Entry<CharCount, List<PartialEvaluation>> e : partials.entrySet()) {
+				List<PartialEvaluation> list = e.getValue();
+				for (Iterator<PartialEvaluation> j = list.iterator(); j.hasNext();) {
+					if (duds.contains(j.next().cc))
+						j.remove();
+				}
+				if (list.isEmpty()) {
+					synchronized (buffer) {
+						buffer.add(e.getKey());
+					}
+				}
+			}
+			for (CharCount cc : buffer) {
+				partials.remove(cc);
+			}
+			duds.clear();
+			duds.addAll(buffer);
+			buffer.clear();
+		}
+		for (List<PartialEvaluation> l : partials.values())
+			finalBranchCount += l.size();
+		afterClean.run(branchCount, finalBranchCount, partialCount - partials.size());
 	}
 
 	class WordBucket {
@@ -201,7 +250,8 @@ public class TrieWalker {
 								bestCount = bc;
 							}
 						}
-						if (optima.isEmpty()) return;
+						if (optima.isEmpty())
+							return;
 						Collections.sort(optima);
 						int best = optima.getFirst();
 						for (Iterator<PartialEvaluation> i = list.iterator(); i.hasNext();) {

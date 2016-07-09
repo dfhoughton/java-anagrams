@@ -160,6 +160,12 @@ public class Anagramizer {
 				}
 				System.out.println();
 			};
+			walker.beforeClean = () -> {
+				System.out.println("removing unused branches...");
+			};
+			walker.afterClean = (a,b,c) -> {
+				System.out.printf("initial branches: %,d; final branches: %,d; removed: %,d; character counts removed: %,d\n", a, b, a-b, c);
+			};
 		}
 		boolean shuffle = cli.integer("shuffle") > 0, shuffleWell = cli.integer("shuffle") == 2;
 		walker.anagrams(phrase, stowerAction, shuffle, shuffleWell);
