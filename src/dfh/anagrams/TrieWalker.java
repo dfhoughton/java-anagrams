@@ -3,7 +3,6 @@ package dfh.anagrams;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -12,6 +11,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import dfh.thread.ThreadPuddle;
@@ -29,7 +29,7 @@ import dfh.thread.ThreadPuddle;
  */
 public class TrieWalker {
 	private Trie trie;
-	private Map<CharCount, List<PartialEvaluation>> partials = new HashMap<>();
+	private Map<CharCount, List<PartialEvaluation>> partials = new ConcurrentHashMap<>();
 	private Queue<CharCount> work = new ConcurrentLinkedQueue<>();
 	private ThreadPuddle pool;
 	public Runnable beforeWalk = () -> {
@@ -83,10 +83,8 @@ public class TrieWalker {
 		if (baseCount == null) {
 			return;
 		}
-		synchronized (partials) {
-			if (!partials.containsKey(baseCount)) {
-				work.add(baseCount);
-			}
+		if (!partials.containsKey(baseCount)) {
+			work.add(baseCount);
 		}
 		walk(baseCount.total);
 		clean();
@@ -103,7 +101,7 @@ public class TrieWalker {
 		int branchCount = 0, finalBranchCount = 0, partialCount = partials.size();
 		for (List<PartialEvaluation> l : partials.values())
 			branchCount += l.size();
-		Set<CharCount> duds = new HashSet<>(), buffer = new HashSet<>();
+		Set<CharCount> duds = new HashSet<>(), buffer = new HashSet<>(), pivot;
 		for (Iterator<Entry<CharCount, List<PartialEvaluation>>> i = partials.entrySet().iterator(); i.hasNext();) {
 			Entry<CharCount, List<PartialEvaluation>> e = i.next();
 			if (e.getValue().isEmpty()) {
@@ -119,16 +117,15 @@ public class TrieWalker {
 						j.remove();
 				}
 				if (list.isEmpty()) {
-					synchronized (buffer) {
-						buffer.add(e.getKey());
-					}
+					buffer.add(e.getKey());
 				}
 			}
 			for (CharCount cc : buffer) {
 				partials.remove(cc);
 			}
-			duds.clear();
-			duds.addAll(buffer);
+			pivot = buffer;
+			buffer = duds;
+			duds = pivot;
 			buffer.clear();
 		}
 		for (List<PartialEvaluation> l : partials.values())
@@ -212,64 +209,60 @@ public class TrieWalker {
 		while (true) {
 			while (!work.isEmpty()) {
 				Runnable r;
-				synchronized (partials) {
-					final CharCount cc = work.remove();
-					final List<PartialEvaluation> list = new LinkedList<>();
-					partials.put(cc, list);
-					r = () -> {
-						trie.allSingleWordsFromCharacterCount(cc, list);
+				final CharCount cc = work.remove();
+				final List<PartialEvaluation> list = new LinkedList<>();
+				partials.put(cc, list);
+				r = () -> {
+					trie.allSingleWordsFromCharacterCount(cc, list);
 
-						// prune the tree
-						// keep only those partials that decremented the least
-						// frequently decremented
-						// character count -- these must be decremented in any
-						// successful anagram anyway,
-						// and this reduces the size of the search tree and thus
-						// the number of duplicates
-						// that would otherwise have to be jettisoned
-						int[] charCount = new int[cc.counts.length];
-						for (PartialEvaluation pe : list) {
-							for (int i : pe.charSet()) {
-								charCount[i]++;
-							}
+					// prune the tree
+					// keep only those partials that decremented the least
+					// frequently decremented
+					// character count -- these must be decremented in any
+					// successful anagram anyway,
+					// and this reduces the size of the search tree and thus
+					// the number of duplicates
+					// that would otherwise have to be jettisoned
+					int[] charCount = new int[cc.counts.length];
+					for (PartialEvaluation pe : list) {
+						for (int i : pe.charSet()) {
+							charCount[i]++;
 						}
-						int bestCount = 0;
-						LinkedList<Integer> optima = new LinkedList<>();
-						for (int i = 0; i < charCount.length; i++) {
-							int bc = charCount[i];
-							if (bc == 0)
-								continue;
-							if (bestCount == 0) {
-								optima.add(i);
-								bestCount = bc;
-							} else if (bestCount == bc) {
-								optima.add(i);
-							} else if (bestCount > bc) {
-								optima.clear();
-								optima.add(i);
-								bestCount = bc;
-							}
+					}
+					int bestCount = 0;
+					LinkedList<Integer> optima = new LinkedList<>();
+					for (int i = 0; i < charCount.length; i++) {
+						int bc = charCount[i];
+						if (bc == 0)
+							continue;
+						if (bestCount == 0) {
+							optima.add(i);
+							bestCount = bc;
+						} else if (bestCount == bc) {
+							optima.add(i);
+						} else if (bestCount > bc) {
+							optima.clear();
+							optima.add(i);
+							bestCount = bc;
 						}
-						if (optima.isEmpty())
-							return;
-						Collections.sort(optima);
-						int best = optima.getFirst();
-						for (Iterator<PartialEvaluation> i = list.iterator(); i.hasNext();) {
-							PartialEvaluation pe = i.next();
-							if (!pe.charSet().contains(best)) {
-								i.remove();
-							}
+					}
+					if (optima.isEmpty())
+						return;
+					Collections.sort(optima);
+					int best = optima.getFirst();
+					for (Iterator<PartialEvaluation> i = list.iterator(); i.hasNext();) {
+						PartialEvaluation pe = i.next();
+						if (!pe.charSet().contains(best)) {
+							i.remove();
 						}
+					}
 
-						synchronized (partials) {
-							for (PartialEvaluation pe : list) {
-								if (!(pe.done() || partials.containsKey(pe.cc))) {
-									work.add(pe.cc);
-								}
-							}
+					for (PartialEvaluation pe : list) {
+						if (!(pe.done() || partials.containsKey(pe.cc))) {
+							work.add(pe.cc);
 						}
-					};
-				}
+					}
+				};
 				pool.run(r);
 			}
 			pool.flush();
