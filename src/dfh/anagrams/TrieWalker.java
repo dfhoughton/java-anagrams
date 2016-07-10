@@ -30,6 +30,7 @@ import dfh.thread.ThreadPuddle;
 public class TrieWalker {
 	private Trie trie;
 	private Map<CharCount, List<PartialEvaluation>> partials = new ConcurrentHashMap<>();
+	private Set<CharCount> duds = ConcurrentHashMap.newKeySet();
 	private Queue<CharCount> work = new ConcurrentLinkedQueue<>();
 	private ThreadPuddle pool;
 	public Runnable beforeWalk = () -> {
@@ -101,14 +102,7 @@ public class TrieWalker {
 		int branchCount = 0, finalBranchCount = 0, partialCount = partials.size();
 		for (List<PartialEvaluation> l : partials.values())
 			branchCount += l.size();
-		Set<CharCount> duds = new HashSet<>(), buffer = new HashSet<>(), pivot;
-		for (Iterator<Entry<CharCount, List<PartialEvaluation>>> i = partials.entrySet().iterator(); i.hasNext();) {
-			Entry<CharCount, List<PartialEvaluation>> e = i.next();
-			if (e.getValue().isEmpty()) {
-				i.remove();
-				duds.add(e.getKey());
-			}
-		}
+		Set<CharCount> buffer = new HashSet<>(), pivot;
 		while (!duds.isEmpty()) {
 			for (Entry<CharCount, List<PartialEvaluation>> e : partials.entrySet()) {
 				List<PartialEvaluation> list = e.getValue();
@@ -210,10 +204,12 @@ public class TrieWalker {
 			while (!work.isEmpty()) {
 				Runnable r;
 				final CharCount cc = work.remove();
+				if (duds.contains(cc))
+					continue;
 				final List<PartialEvaluation> list = new LinkedList<>();
 				partials.put(cc, list);
 				r = () -> {
-					trie.allSingleWordsFromCharacterCount(cc, list);
+					trie.allSingleWordsFromCharacterCount(cc, list, duds);
 
 					// prune the tree
 					// keep only those partials that decremented the least

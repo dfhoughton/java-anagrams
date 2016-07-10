@@ -40,8 +40,9 @@ public class Trie {
 	 * 
 	 * @param cc
 	 * @param list
+	 * @param duds 
 	 */
-	public void allSingleWordsFromCharacterCount(CharCount cc, List<PartialEvaluation> list) {
+	public void allSingleWordsFromCharacterCount(CharCount cc, List<PartialEvaluation> list, Set<CharCount> duds) {
 		root.allSingleWordsFromCharacterCount(new PartialEvaluation(cc), list);
 		// make sure every character count was decremented somewhere
 		Set<Integer> cs = new HashSet<>(cc.charSet().length);
@@ -60,6 +61,7 @@ public class Trie {
 			}
 		} else {
 			list.clear();
+			duds.add(cc);
 		}
 	}
 
